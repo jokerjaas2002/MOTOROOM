@@ -10,6 +10,7 @@ header {
     color: #fff;
     padding: 10px 0;
     text-align: center;
+    display: flex;
 }
 
 nav ul {
@@ -44,9 +45,59 @@ ul li {
 }
 
 .logo-animado {
-    width: 150px; /* Ajusta el tamaño según sea necesario */
-     /*animation: spin 5s linear infinite; Ejemplo de animación */
+    width: 150px; 
+     
 }
+
+.contenedor {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin: 20px 0; 
+}
+
+.imagen-tienda {
+    width: 100vw; 
+    height: auto;
+     
+}
+
+.image-container {
+    position: relative;
+    overflow: hidden;
+}
+
+h2 {
+    color: #fff;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 5px;
+    border-radius: 5px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.image-container:hover h2 {
+    opacity: 1;
+}
+
+.imagen-producto {
+    width: 300px; /* Ajusta el ancho deseado */
+    height: 200px; /* Ajusta la altura deseada */
+    object-fit: cover; /* Mantiene la proporción de la imagen y recorta si es necesario */
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.imagen-producto:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+
+
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
