@@ -1,72 +1,187 @@
+<?php
+include 'includes/db.php';
+
+// Obtener parámetros de filtrado
+$categoria = $_GET['categoria'] ?? null;
+$marca = $_GET['marca'] ?? null;
+$min_cc = $_GET['min_cc'] ?? null;
+$max_precio = $_GET['max_precio'] ?? null;
+
+// Construir consulta base
+$sql = "SELECT * FROM productos WHERE stock > 0";
+$params = [];
+$conditions = [];
+
+// Filtros
+if ($categoria) {
+    $conditions[] = "categoria = ?";
+    $params[] = $categoria;
+}
+
+if ($marca) {
+    $conditions[] = "marca = ?";
+    $params[] = $marca;
+}
+
+if ($min_cc) {
+    $conditions[] = "cilindrada >= ?";
+    $params[] = $min_cc;
+}
+
+if ($max_precio) {
+    $conditions[] = "precio <= ?";
+    $params[] = $max_precio;
+}
+
+// Combinar condiciones
+if (!empty($conditions)) {
+    $sql .= " AND " . implode(" AND ", $conditions);
+}
+
+try {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Obtener marcas y categorías únicas para los filtros
+    $marcas = $pdo->query("SELECT DISTINCT marca FROM productos ORDER BY marca")->fetchAll(PDO::FETCH_COLUMN);
+    $categorias = $pdo->query("SELECT DISTINCT categoria FROM productos ORDER BY categoria")->fetchAll(PDO::FETCH_COLUMN);
+    
+} catch (PDOException $e) {
+    die("Error al cargar productos: " . $e->getMessage());
+}
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/styles.css">
-    <title>Productos - MOTOROOM</title>
+    <?php include 'includes/header.php'; ?>
+    <title>Catálogo de Motos - MOTOROOM</title>
 </head>
 <body>
-    <?php include 'includes/header.php'; ?>
-    <main>
-        <h1>Productos Destacados</h1>
-        
-        <!-- Formulario de búsqueda -->
-        <form method="GET" action="productos.php">
-            <input type="text" name="search" placeholder="Buscar productos..." required>
-            <button type="submit">Buscar</button>
-        </form>
+    <header class="main-header">
+        <?php include 'includes/navbar.php'; ?>
+    </header>
 
-        <?php
-        include 'includes/db.php'; // Asegúrate de incluir la conexión a la base de datos
+    <main class="main-content">
+        <section class="productos-container">
+            <h1 class="section-title">Nuestro Catálogo</h1>
+            
+            <!-- Filtros -->
+            <div class="filtros-sidebar">
+                <form class="filtros-form">
+                    <div class="filtro-group">
+                        <h3>Categorías</h3>
+                        <select name="categoria" class="select-filter">
+                            <option value="">Todas</option>
+                            <?php foreach ($categorias as $cat): ?>
+                            <option value="<?= htmlspecialchars($cat) ?>" <?= $cat == $categoria ? 'selected' : '' ?>>
+                                <?= htmlspecialchars(ucfirst($cat)) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-        // Obtener el término de búsqueda
-        $search = isset($_GET['search']) ? $_GET['search'] : '';
+                    <div class="filtro-group">
+                        <h3>Marcas</h3>
+                        <select name="marca" class="select-filter">
+                            <option value="">Todas</option>
+                            <?php foreach ($marcas as $m): ?>
+                            <option value="<?= htmlspecialchars($m) ?>" <?= $m == $marca ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($m) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-        // Consulta para obtener los productos
-        $sql = "SELECT * FROM productos WHERE nombre LIKE :search";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['search' => '%' . $search . '%']);
-        $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    <div class="filtro-group">
+                        <h3>Cilindrada Mínima</h3>
+                        <input type="number" name="min_cc" 
+                               value="<?= htmlspecialchars($min_cc) ?>" 
+                               placeholder="Ej: 600" min="0">
+                    </div>
 
-        // Verifica si hay productos
-        if (count($productos) > 0) {
-            echo '<section>';
-            echo '<h2>Resultados de la Búsqueda</h2>';
-            echo '<ul>';
-            foreach ($productos as $producto) {
-                echo '<li>';
-                echo '<h3><a href="detalle_producto.php?id=' . $producto['id'] . '">' . htmlspecialchars($producto['nombre']) . '</a></h3>';
-                echo '<p>' . htmlspecialchars($producto['descripcion']) . '</p>';
-                echo '<p>Precio: $' . htmlspecialchars($producto['precio']) . '</p>';
-                echo '<img src="' . htmlspecialchars($producto['imagen']) . '" alt="' . htmlspecialchars($producto['nombre']) . '" style="width:150px;">';
-                echo '</li>';
-            }
-            echo '</ul>';
-            echo '</section>';
-        } else {
-            echo '<p>No se encontraron productos que coincidan con tu búsqueda.</p>';
-        }
-        ?>
-        
-        <section>
-            <h2>Accesorios</h2>
-            <ul>
-                <li>
-                    <h3>Casco Integral</h3>
-                    <p>Casco de alta seguridad y comodidad, ideal para cualquier tipo de motocicleta.</p>
-                </li>
-                <li>
-                    <h3>Guantes de Cuero</h3>
-                    <p>Guantes resistentes y cómodos para una mejor sujeción y protección.</p>
-                </li>
-                <li>
-                    <h3>Chaqueta de Moto</h3>
-                    <p>Chaqueta con protección y ventilación, perfecta para cualquier clima.</p>
-                </li>
-            </ul>
+                    <div class="filtro-group">
+                        <h3>Precio Máximo</h3>
+                        <input type="number" name="max_precio" 
+                               value="<?= htmlspecialchars($max_precio) ?>" 
+                               placeholder="USD" min="0">
+                    </div>
+
+                    <button type="submit" class="btn-filtrar">
+                        <i class="fas fa-filter"></i> Aplicar Filtros
+                    </button>
+                </form>
+            </div>
+
+            <!-- Listado de Productos -->
+            <div class="productos-grid">
+                <?php if (empty($productos)): ?>
+                <div class="no-result">
+                    <i class="fas fa-motorcycle"></i>
+                    <p>No encontramos motos con esos filtros</p>
+                </div>
+                <?php endif; ?>
+
+                <?php foreach ($productos as $producto): ?>
+                <article class="producto-card">
+                    <div class="producto-imagen">
+                        <img src="img/motos/<?= htmlspecialchars($producto['imagen_principal']) ?>" 
+                             alt="<?= htmlspecialchars($producto['marca'] . ' ' . $producto['modelo']) ?>">
+                        <span class="categoria-badge">
+                            <?= htmlspecialchars($producto['categoria']) ?>
+                        </span>
+                    </div>
+                    
+                    <div class="producto-info">
+                        <h2><?= htmlspecialchars($producto['marca']) ?></h2>
+                        <h3><?= htmlspecialchars($producto['modelo']) ?></h3>
+                        
+                        <div class="especificaciones">
+                            <div class="espec-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span><?= $producto['cilindrada'] ?>cc</span>
+                            </div>
+                            <div class="espec-item">
+                                <i class="fas fa-weight-hanging"></i>
+                                <span><?= $producto['peso'] ?>kg</span>
+                            </div>
+                            <div class="espec-item">
+                                <i class="fas fa-horse-head"></i>
+                                <span><?= $producto['potencia'] ?>HP</span>
+                            </div>
+                        </div>
+
+                        <div class="producto-precio">
+                            $<?= number_format($producto['precio'], 0, ',', '.') ?>
+                        </div>
+
+                        <div class="producto-acciones">
+                            <a href="detalles.php?id=<?= $producto['id'] ?>" 
+                               class="btn-detalles">
+                               <i class="fas fa-search"></i> Detalles
+                            </a>
+                            <button class="btn-cotizar" 
+                                    data-producto-id="<?= $producto['id'] ?>">
+                                <i class="fas fa-file-invoice-dollar"></i> Cotizar
+                            </button>
+                        </div>
+                    </div>
+                </article>
+                <?php endforeach; ?>
+            </div>
         </section>
     </main>
+
     <?php include 'includes/footer.php'; ?>
+
+    <script>
+    // Filtrado dinámico sin recargar la página
+    document.querySelectorAll('.select-filter, .filtros-form input').forEach(element => {
+        element.addEventListener('change', () => {
+            document.querySelector('.filtros-form').submit();
+        });
+    });
+    </script>
 </body>
 </html>
